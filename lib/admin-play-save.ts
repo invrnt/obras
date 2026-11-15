@@ -3,8 +3,9 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 
 import { ADMIN_PANEL_PATH } from "@/lib/constants";
-import { getPlaySlugById, isSlugTaken, updatePlay } from "@/lib/plays";
-import { slugify } from "@/lib/utils";
+import { ensureUniqueSlug, getPlaySlugById, updatePlay } from "@/lib/plays";
+
+export { ensureUniqueSlug };
 
 type SavePlayDraftInput = {
   id: string;
@@ -20,21 +21,6 @@ export type SavePlayDraftResult = {
   slug?: string;
   savedAt?: string;
 };
-
-export async function ensureUniqueSlug(baseValue: string, excludeId?: string) {
-  const base = slugify(baseValue) || "obra";
-  let candidate = base;
-  let index = 2;
-
-  while (true) {
-    if (!(await isSlugTaken(candidate, excludeId))) {
-      return candidate;
-    }
-
-    candidate = `${base}-${index}`;
-    index += 1;
-  }
-}
 
 export async function revalidatePlayPaths(playId: string) {
   const slug = await getPlaySlugById(playId);

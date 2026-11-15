@@ -1,4 +1,4 @@
-import { d1Execute, d1First, d1Query } from "@/lib/d1";
+import { dbExecute as d1Execute, dbFirst as d1First, dbQuery as d1Query } from "@/lib/db";
 import { buildVoteReviews, parsePlayContent } from "@/lib/markdown-votes";
 import type {
   AdminPlayDetail,
@@ -8,7 +8,7 @@ import type {
   PublicPlaySummary,
   VoteBallotSummary,
 } from "@/lib/types";
-import { makeExcerpt } from "@/lib/utils";
+import { makeExcerpt, slugify } from "@/lib/utils";
 
 type PlayRow = {
   id: string;
@@ -522,4 +522,90 @@ export async function saveVote(
      WHERE excluded.client_updated_at >= play_votes.client_updated_at`,
     [playId, voteId, actorId, actorName, optionId, optionLabel, clientUpdatedAt],
   );
+}
+
+export async function ensureUniqueSlug(baseValue: string, excludeId?: string) {
+  const base = slugify(baseValue) || "obra";
+  let candidate = base;
+  let index = 2;
+
+  while (await isSlugTaken(candidate, excludeId)) {
+    candidate = `${base}-${index}`;
+    index += 1;
+  }
+
+  return candidate;
+}
+
+export async function deletePlay(id: string) {
+  await d1Execute(
+    `DELETE FROM fragment_assignment_actors
+     WHERE assignment_id IN (SELECT id FROM fragment_assignments WHERE play_id = ?)`,
+    [id],
+  );
+  await d1Execute(`DELETE FROM fragment_assignments WHERE play_id = ?`, [id]);
+  await d1Execute(`DELETE FROM play_votes WHERE play_id = ?`, [id]);
+  await d1Execute(`DELETE FROM actors WHERE play_id = ?`, [id]);
+  const meta = await d1Execute(`DELETE FROM plays WHERE id = ?`, [id]);
+  return meta.changes > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers used by the `obras` CLI (cli/obras.ts, lib/play-import.ts).
+// ---------------------------------------------------------------------------
+
+/** Resolves a play reference that may be either its id or its slug. */
+export async function findPlayIdByRef(ref: string) {
+  const value = ref.trim();
+
+  if (!value) {
+    return null;
+  }
+
+  const row =
+    (await d1First<{ id: string }>(`SELECT id FROM plays WHERE id = ? LIMIT 1`, [value])) ??
+    (await d1First<{ id: string }>(`SELECT id FROM plays WHERE slug = ? LIMIT 1`, [value.toLowerCase()]));
+
+  return row?.id ?? null;
+}
+
+/** Like createPlay, but with a caller-chosen id (needed to build media keys before the insert). */
+export async function createPlayWithId(id: string, title: string, slug: string, markdown = "") {
+  await d1Execute(
+    `INSERT INTO plays (id, title, slug, markdown, published, hidden, is_active)
+     VALUES (?, ?, ?, ?, 0, 0, 0)`,
+    [id, title, slug, markdown],
+  );
+
+  return { id };
+}
+
+/** Moves an existing assignment to a new range (used when the markdown changes). */
+export async function updateAssignmentRange(
+  playId: string,
+  assignmentId: string,
+  startOffset: number,
+  endOffset: number,
+  selectedText: string,
+) {
+  await d1Execute(
+    `UPDATE fragment_assignments
+     SET start_offset = ?, end_offset = ?, selected_text = ?
+     WHERE id = ? AND play_id = ?`,
+    [startOffset, endOffset, selectedText, assignmentId, playId],
+  );
+}
+
+/** Deletes vote ballots of a play (all of them, or only those of one vote block). */
+export async function deletePlayVotes(playId: string, voteBlockId?: string) {
+  const meta = voteBlockId
+    ? await d1Execute(`DELETE FROM play_votes WHERE play_id = ? AND vote_block_id = ?`, [playId, voteBlockId])
+    : await d1Execute(`DELETE FROM play_votes WHERE play_id = ?`, [playId]);
+
+  return meta.changes;
+}
+
+/** Raw markdown of every play (to know which media files are still referenced). */
+export async function getAllPlayMarkdown() {
+  return d1Query<{ id: string; slug: string; markdown: string }>(`SELECT id, slug, markdown FROM plays`);
 }

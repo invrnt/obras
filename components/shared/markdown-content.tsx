@@ -119,7 +119,8 @@ export const markdownContentComponents: Components = {
     // eslint-disable-next-line @next/next/no-img-element
     return <img className="articleImage" src={resolvedSrc} alt={alt || "Imagen de la obra"} />;
   },
-  audio: ({ src, ...props }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  audio: ({ src, node, ...props }) => {
     if (typeof src !== "string" || !src) {
       return null;
     }

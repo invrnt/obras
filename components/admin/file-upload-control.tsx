@@ -22,36 +22,20 @@ export function FileUploadControl({ playId, onInsert }: FileUploadControlProps) 
     setStatus("");
 
     try {
-      const response = await fetch("/api/admin/upload", {
+      const query = new URLSearchParams({ fileName: file.name, playId });
+      const response = await fetch(`/api/admin/upload?${query}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contentType: file.type,
-          fileName: file.name,
-          playId,
-        }),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        headers?: Record<string, string>;
-        uploadUrl?: string;
-        url?: string;
-      };
-
-      if (!response.ok || !payload.uploadUrl || !payload.url) {
-        setStatus(payload.error || "No se pudo subir el archivo.");
-        return;
-      }
-
-      const uploadResponse = await fetch(payload.uploadUrl, {
-        method: "PUT",
-        headers: payload.headers,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
         body: file,
       });
 
-      if (!uploadResponse.ok) {
-        setStatus("No se pudo subir el archivo a R2.");
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        url?: string;
+      };
+
+      if (!response.ok || !payload.url) {
+        setStatus(payload.error || "No se pudo subir el archivo.");
         return;
       }
 

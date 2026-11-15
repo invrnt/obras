@@ -1,1 +1,3 @@
 - Use bun instead of npm.
+- Para gestionar contenido y operación de la app (obras, actores, asignaciones, votaciones, medios, publicar/activar, status/logs/restart/backup) usa el CLI `obras` (`cli/obras.ts`, wrapper global `~/.local/bin/obras`, o `bun run obras`). Salida JSON; `obras help`.
+- Referencia completa del CLI y formato del manifiesto (`obras apply`): `cli/README.md`. Prueba con `OBRAS_DATA_DIR=$(mktemp -d)` para no tocar `data/`.

@@ -1,73 +1,49 @@
 # Ensayo de Obras
 
 Aplicación interna para cargar guiones de teatro y repasarlos desde el celular.
+Corre en local en la mini PC (`node01`) y se publica en **https://obras.orientador.co** mediante un Cloudflare Tunnel.
 
 ## Qué incluye
 
-- Frente público de solo lectura.
-- Panel oculto en `/tramoya`.
-- Login hardcodeado:
-  - Usuario: `admin`
-  - Contraseña: `12345678`
-- Editor Markdown con soporte para imágenes y audio.
-- Actores por obra.
-- Asignación de fragmentos del texto a uno o varios actores.
-- Opción de publicar, ocultar y marcar una única `obra activa`.
-- Selección pública de actor con persistencia en `localStorage`.
-- Persistencia real preparada para Cloudflare D1.
-- Archivos multimedia persistentes preparados para Cloudflare R2.
+- Frente público de solo lectura (`/`, `/obras`, `/obras/<slug>`).
+- Panel oculto en `/tramoya` (usuario y contraseña en `~/.config/obras/server.env`).
+- Editor Markdown con imágenes, audio y bloques de votación.
+- Actores por obra y asignación de fragmentos a uno o varios actores.
+- Publicar, ocultar y marcar una única `obra activa`.
+- CLI `obras` para que un agente de IA gestione todo (ver `cli/README.md`).
 
-## Variables de entorno
+## Arquitectura local
 
-Copia `.env.example` a `.env.local` y completa:
+| Pieza | Dónde |
+|---|---|
+| Base de datos | SQLite (`node:sqlite`, modo WAL) en `data/obras.sqlite`; el esquema se crea solo (`lib/db.ts`) |
+| Multimedia | Archivos en `data/media/`, servidos por `/media/<key>` con Range, ETag y caché `immutable` (`lib/storage.ts`) |
+| Servidor | `next start` en `127.0.0.1:3410`, servicio `systemctl --user` `obras.service` |
+| Túnel | Cloudflare Tunnel `obras` (cuenta ascend, id `6d96b451-ce40-48fa-b3e1-2c4274877bb5`), servicio `obras-tunnel.service` |
+| Secretos | `~/.config/obras/server.env` (ADMIN_PASSWORD, SESSION_SECRET, OBRAS_DATA_DIR) y `~/.config/obras/tunnel-token` |
 
-```bash
-CLOUDFLARE_ACCOUNT_ID=""
-CLOUDFLARE_D1_DATABASE_ID=""
-CLOUDFLARE_D1_API_TOKEN=""
-R2_ACCESS_KEY_ID=""
-R2_SECRET_ACCESS_KEY=""
-R2_BUCKET_NAME=""
-R2_PUBLIC_BASE_URL=""
-# Optional. If omitted, the app uses https://<CLOUDFLARE_ACCOUNT_ID>.r2.cloudflarestorage.com
-R2_ENDPOINT=""
-```
+`data/` no se versiona: haz copias con `obras backup`.
 
 ## Desarrollo
 
-1. Instala dependencias:
-
 ```bash
 bun install
+set -a; . ~/.config/obras/server.env; set +a
+OBRAS_DATA_DIR=./data-dev bun dev
 ```
 
-2. Crea las tablas en D1:
+## Desplegar cambios de código
 
 ```bash
-bun run db:init
+bun run build && systemctl --user restart obras.service
+# o: obras rebuild
 ```
 
-3. Levanta el proyecto:
+Los cambios de contenido (obras, actores, medios) no requieren build: las páginas leen SQLite en cada request.
+
+## Operación
 
 ```bash
-bun dev
+systemctl --user status obras.service obras-tunnel.service
+journalctl --user -u obras.service -f
 ```
-
-## Despliegue
-
-- La app está lista para desplegar en Vercel.
-- El contenido editorial vive en Cloudflare D1 vía API segura.
-- Imágenes y audios se guardan en Cloudflare R2.
-
-## R2 público
-
-`R2_PUBLIC_BASE_URL` debe apuntar al dominio público desde el que servirás los archivos del bucket.
-
-Ejemplos:
-
-- `https://pub-xxxx.r2.dev`
-- `https://media.tudominio.com`
-
-## Nota operativa
-
-Cloudflare recomienda acceder a D1 desde fuera de Workers mediante un proxy Worker propio para tráfico alto. Esta implementación habla con la API HTTPS de D1 directamente desde el servidor de Next, lo cual simplifica la puesta en marcha y funciona bien para una app interna de bajo volumen.
