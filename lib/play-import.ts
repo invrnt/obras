@@ -9,6 +9,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 
+import { AutoAssignError, computeAutoAssignments, parseAutoAssign } from "@/lib/auto-assign";
 import { getDb } from "@/lib/db";
 import { buildMediaPath } from "@/lib/media";
 import {
@@ -511,6 +512,7 @@ export type Manifest = {
   markdown_file?: string;
   actors?: Array<string | { name: string }>;
   assignments?: ManifestAssignment[];
+  auto_assign?: unknown;
   media?: Record<string, ManifestMediaEntry>;
   published?: boolean;
   hidden?: boolean;
@@ -525,6 +527,7 @@ const MANIFEST_KEYS = new Set([
   "markdown_file",
   "actors",
   "assignments",
+  "auto_assign",
   "media",
   "published",
   "hidden",
@@ -701,12 +704,40 @@ export async function applyManifest(manifest: Manifest, options: ApplyOptions) {
   // ---------- 5. Assignments ----------
   let desired: DesiredAssignment[] | null = null;
 
-  if (manifest.assignments !== undefined) {
-    if (!Array.isArray(manifest.assignments)) throw new CliError("assignments debe ser una lista.");
+  let autoAssignStats: Record<string, number> | undefined;
+
+  if (manifest.assignments !== undefined || manifest.auto_assign !== undefined) {
+    if (manifest.assignments !== undefined && !Array.isArray(manifest.assignments)) {
+      throw new CliError("assignments debe ser una lista.");
+    }
 
     const byRange = new Map<string, DesiredAssignment>();
 
-    manifest.assignments.forEach((entry, index) => {
+    if (manifest.auto_assign !== undefined) {
+      try {
+        const config = parseAutoAssign(manifest.auto_assign);
+        for (const character of Object.values(config.characters)) {
+          for (const name of character.actors) {
+            if (!desiredByKey.has(actorKey(name))) throw new CliError(`auto_assign: actor "${name}" no está en actors.`);
+          }
+        }
+        const auto = computeAutoAssignments(finalMarkdown, config);
+        autoAssignStats = auto.stats;
+        for (const range of auto.ranges) {
+          byRange.set(`${range.startOffset}:${range.endOffset}`, {
+            startOffset: range.startOffset,
+            endOffset: range.endOffset,
+            text: range.text,
+            actorNames: range.actorNames.map((name) => desiredByKey.get(actorKey(name))!),
+          });
+        }
+      } catch (error) {
+        if (error instanceof AutoAssignError) throw new CliError(error.message);
+        throw error;
+      }
+    }
+
+    (manifest.assignments ?? []).forEach((entry, index) => {
       const label = `assignments[${index}]`;
       if (!entry || typeof entry.text !== "string") throw new CliError(`${label}: falta "text".`);
 
@@ -814,6 +845,7 @@ export async function applyManifest(manifest: Manifest, options: ApplyOptions) {
           update: assignmentPlan.update.map((item) => ({ text: item.text, actors: item.actorNames, startOffset: item.startOffset })),
           remove: assignmentPlan.remove.map((item) => ({ id: item.id, text: item.selectedText, actors: item.actorNames })),
           unchanged: assignmentPlan.unchanged,
+          ...(autoAssignStats ? { auto: autoAssignStats } : {}),
         }
       : relocation
         ? { relocated: summarizeRelocation(relocation) }

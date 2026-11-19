@@ -50,6 +50,28 @@ YAML o JSON. Las rutas son relativas al manifiesto.
 - **Idempotencia**: si se re-aplica el mismo manifiesto, la respuesta trae `"changed": false` y no se escribe nada (ni siquiera `updated_at`).
 - La salida incluye `plan`: `changes`, `actors.add|remove|extra`, `media.upload|reuse|unused`, `assignments.add|update|remove|unchanged` (o `relocated`) y `warnings`.
 
+### Asignación automática (`auto_assign`)
+
+Para guiones con formato `**PERSONAJE:** texto` y acotaciones `*(…)*`. Evita listar cada línea en `assignments`:
+
+```yaml
+auto_assign:
+  section: Guion              # opcional: solo bajo el encabezado "Guion" (hasta el siguiente de igual nivel)
+  characters:                 # PERSONAJE (como aparece en **PERSONAJE:**) -> actor(es) de `actors`
+    ANA: Mariana (Ana)
+    GABRIEL: {actors: Alexandra (Gabriel), match: [ángel]}   # match = otras palabras que lo nombran en acotaciones
+  groups:                     # nombres colectivos, en diálogos (**GABRIEL Y PASTORES:**) y en acotaciones
+    PASTORES: {members: [DÉBORA, RUT], match: [pastores]}
+    TODOS: {members: "*", match: [todos los actores]}
+  skip: Audio pendiente       # regex: párrafos que la detección por menciones ignora
+  # dialogue: true / mentions: true (por defecto)
+```
+
+- Diálogo: el párrafo entero va a los actores del personaje (o personajes: `A Y B`, `A, B`, grupos). Un personaje sin mapear es error.
+- Resto de párrafos (acotaciones, pistas de sonido): van a los personajes cuyo nombre (o `match`) aparece, sin importar tildes ni mayúsculas.
+- Las acotaciones que no nombran a nadie (`*(Salen.)*`) se completan con `assignments` normales; se combinan.
+- `apply --dry-run` muestra `assignments.auto` con conteos. Ejemplo real: `~/obras-contenido/permanecer/obra.yaml`.
+
 ### Votaciones (sintaxis del markdown)
 
 ```
