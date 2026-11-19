@@ -533,6 +533,7 @@ body:has(.printDoc) .pwaBanner {
 
 /* Code (Suno prompts, lyrics) */
 .printBody pre {
+  color: var(--ink);
   margin: 2mm 0 5mm;
   padding: 3mm 4mm;
   border-radius: 1.5mm;
@@ -543,6 +544,12 @@ body:has(.printDoc) .pwaBanner {
   font-size: 8.8pt;
   line-height: 1.5;
   break-inside: avoid;
+}
+
+.printBody pre code {
+  padding: 0;
+  background: none;
+  color: var(--ink);
 }
 
 .printBody code {
@@ -591,6 +598,7 @@ body:has(.printDoc) .pwaBanner {
 /* ---------------------------------------------------------------- Paper */
 
 @media print {
+  html:has(.printDoc),
   body:has(.printDoc) {
     background: #fff;
   }
