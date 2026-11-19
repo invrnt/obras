@@ -10,6 +10,7 @@ Corre en local en la mini PC (`node01`) y se publica en **https://obras.orientad
 - Editor Markdown con imágenes, audio y bloques de votación.
 - Actores por obra y asignación de fragmentos a uno o varios actores.
 - Publicar, ocultar y marcar una única `obra activa`.
+- Exportar a PDF (portada, reparto, guion en A4; por actor con sus partes resaltadas): botón en cada obra, `/obras/<slug>/pdf` u `obras pdf`.
 - CLI `obras` para que un agente de IA gestione todo (ver `cli/README.md`).
 
 ## Arquitectura local

@@ -137,3 +137,10 @@ obras apply obra.yaml && obras show <slug>
 - `cli/commands.ts`: los comandos.
 - `lib/play-import.ts`: manifiesto, apply/export, reubicación de asignaciones y deduplicación de medios.
 - Reutiliza `lib/plays.ts`, `lib/db.ts` y `lib/storage.ts`. No importa nada de Next (`server-only`, `next/cache`).
+
+## PDF
+
+- `obras pdf <obra> [--actor A | --all-actors] [--out archivo.pdf|dir/]`: portada con reparto + guion en A4, pie con título y número de página. Con `--actor`, sus partes quedan resaltadas y marcadas en el margen. `--all-actors` genera el completo + uno por actor.
+- Lo renderiza el servidor local con Chrome headless (`/usr/bin/google-chrome-stable`, `OBRAS_CHROME_PATH`); queda en caché en `data/cache/pdf/` hasta que cambie la obra o el build.
+- Web: `/obras/<slug>/pdf?actor=<id>` (descarga) y `/obras/<slug>/imprimir` (vista previa con selector de actor). Obras no publicadas: solo admin o CLI.
+- Clasificación para el diseño: `**PERSONAJE:**` = diálogo, `*(…)*` = acotación, `**[…]**` al inicio = pista de sonido, `*🔊 …*` = audio pendiente.

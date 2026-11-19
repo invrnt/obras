@@ -7,6 +7,7 @@ import path from "node:path";
 import { getDb, getDbPath } from "@/lib/db";
 import { buildMediaPath } from "@/lib/media";
 import { getDataDir, getMediaDir } from "@/lib/paths";
+import { renderPlayPdf } from "@/lib/pdf";
 import {
   allReferencedMediaKeys,
   applyManifest,
@@ -647,7 +648,47 @@ const backup: Handler = async (ctx) => {
   };
 };
 
+const pdf: Handler = async (ctx) => {
+  const play = await resolvePlay(ctx.positionals[0]);
+  const allActors = ctx.flags["all-actors"] === true;
+  const actorRef = ctx.str("actor");
+  if (allActors && actorRef) throw new CliError("Usa --actor o --all-actors, no ambos.");
+
+  const targets: Array<{ id: string | null; name: string | null }> = allActors
+    ? [{ id: null, name: null }, ...play.actors.map((a) => ({ id: a.id, name: a.name }))]
+    : [actorRef ? { ...resolveActor(play, actorRef) } : { id: null, name: null }];
+
+  const outArg = ctx.str("out");
+  const outIsDir = allActors || (outArg ? outArg.endsWith("/") || (fs.existsSync(outArg) && fs.statSync(outArg).isDirectory()) : false);
+  const outDir = path.resolve(outIsDir ? outArg ?? play.slug + "-pdf" : outArg ? path.dirname(outArg) : ".");
+  await fsp.mkdir(outDir, { recursive: true });
+
+  const files = [];
+  for (const target of targets) {
+    let rendered;
+    try {
+      rendered = await renderPlayPdf(play.id, target.id);
+    } catch (error) {
+      throw new CliError(
+        `${(error as Error).message} (el PDF lo genera el servidor local: revisa "obras status").`,
+      );
+    }
+    const dest = outIsDir || !outArg ? path.join(outDir, rendered.fileName) : path.resolve(outArg);
+    await fsp.copyFile(rendered.file, dest);
+    files.push({ actor: target.name, file: dest, bytes: rendered.size, cached: rendered.cached });
+  }
+
+  const base = getPublicBaseUrl();
+  return {
+    play: summary(play),
+    files,
+    url: play.published && !play.hidden ? `${base}/obras/${play.slug}/pdf` : null,
+    printView: `${base}/obras/${play.slug}/imprimir`,
+  };
+};
+
 export const COMMANDS: Record<string, Handler> = {
+  pdf,
   apply,
   export: exportCmd,
   list,

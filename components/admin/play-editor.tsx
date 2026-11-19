@@ -634,6 +634,9 @@ export function PlayEditor({ play }: PlayEditorProps) {
             {saveStatusLabel}
           </span>
 
+          <a className="button ghost" href={`/obras/${play.slug}/imprimir`} target="_blank" rel="noreferrer">
+            PDF / imprimir
+          </a>
           <Link className="button ghost" href={ADMIN_PANEL_PATH}>
             Volver al panel
           </Link>

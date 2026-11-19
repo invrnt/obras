@@ -1283,3 +1283,14 @@ main {
     width: 100%;
   }
 }
+
+.pdfActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.pdfActions .button {
+  flex: 1 1 12rem;
+  text-align: center;
+}

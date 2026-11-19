@@ -104,6 +104,21 @@ export function PublicPlayView({ play, showListLink = false }: PublicPlayViewPro
           ) : null}
 
           <PlayDownloadButton urls={cacheUrls} selectedActorName={selectedActor?.name} />
+
+          <div className="pdfActions">
+            <a
+              className="button secondary"
+              href={`/obras/${play.slug}/pdf${selectedActorId ? `?actor=${encodeURIComponent(selectedActorId)}` : ""}`}
+            >
+              {selectedActor ? `Descargar PDF de ${selectedActor.name}` : "Descargar guion en PDF"}
+            </a>
+            <a
+              className="button ghost"
+              href={`/obras/${play.slug}/imprimir${selectedActorId ? `?actor=${encodeURIComponent(selectedActorId)}` : ""}`}
+            >
+              Vista de impresión
+            </a>
+          </div>
         </section>
       </section>
 

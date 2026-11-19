@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type AudioHTMLAttributes } from "react";
+import { cloneElement, Fragment, isValidElement, useRef, useState, type AudioHTMLAttributes } from "react";
 import type { Components } from "react-markdown";
 
 import { normalizeMediaSrc } from "@/lib/media";
@@ -139,4 +139,74 @@ export const markdownContentComponents: Components = {
   tr: ({ children }) => <tr className="markdownTableRow">{children}</tr>,
   th: ({ children }) => <th className="markdownTableHeaderCell">{children}</th>,
   td: ({ children }) => <td className="markdownTableCell">{children}</td>,
+};
+
+type ParagraphKind = "line" | "direction" | "cue" | "pending" | "plain";
+
+function textOf(node: unknown): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (node && typeof node === "object" && "props" in node) {
+    return textOf((node as { props?: { children?: unknown } }).props?.children);
+  }
+  return "";
+}
+
+function elementType(node: unknown) {
+  return node && typeof node === "object" && "type" in node ? (node as { type: unknown }).type : null;
+}
+
+/** Classifies a script paragraph: **PERSONAJE:** line, *(acotación)*, **[PISTA]** cue or plain prose. */
+function classifyParagraph(children: React.ReactNode): ParagraphKind {
+  const items = (Array.isArray(children) ? children : [children]).filter(
+    (child) => !(typeof child === "string" && !child.trim()),
+  );
+  const first = items[0];
+  const firstText = textOf(first).trim();
+
+  if (elementType(first) === "strong" || /^\[/.test(firstText) || /:$/.test(firstText)) {
+    if (/^\[[^\]]+\]$/.test(firstText)) return "cue";
+    if (/:$/.test(firstText) && firstText.length <= 40) return "line";
+  }
+
+  if (items.length === 1 && elementType(first) === "em") {
+    return /^🔊/u.test(firstText) ? "pending" : "direction";
+  }
+
+  return "plain";
+}
+
+/** Headless Chrome has no emoji font: drop the 🔊 glyph (an SVG icon replaces it). */
+function stripSpeakerEmoji(node: React.ReactNode): React.ReactNode {
+  if (typeof node === "string") return node.replace(/🔊\uFE0F?\s*/gu, "");
+  if (Array.isArray(node)) return node.map((child, index) => <Fragment key={index}>{stripSpeakerEmoji(child)}</Fragment>);
+  if (isValidElement<{ children?: React.ReactNode }>(node) && node.props.children !== undefined) {
+    return cloneElement(node, undefined, stripSpeakerEmoji(node.props.children));
+  }
+  return node;
+}
+
+/** Static, print-friendly variant: no audio controls, script paragraphs get semantic classes. */
+export const printMarkdownComponents: Components = {
+  ...markdownContentComponents,
+  a: ({ children, href }) => <a href={href}>{children}</a>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  p: ({ children, node }) => {
+    const kind = classifyParagraph(children);
+    return (
+      <p className={kind === "plain" ? undefined : `print-${kind}`}>
+        {kind === "pending" ? <span className="print-icon" aria-hidden="true" /> : null}
+        {stripSpeakerEmoji(children)}
+      </p>
+    );
+  },
+  audio: ({ src }) => {
+    const name = typeof src === "string" ? decodeURIComponent(src.split("/").pop() || "").replace(/^\d+-/, "") : "";
+    return (
+      <span className="print-audio">
+        <span className="print-icon" aria-hidden="true" />
+        Audio{name ? `: ${name}` : ""}
+      </span>
+    );
+  },
 };

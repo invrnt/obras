@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 
-import { markdownContentComponents } from "@/components/shared/markdown-content";
+import { markdownContentComponents, printMarkdownComponents } from "@/components/shared/markdown-content";
 import { parsePlayContent, type VoteBlockDefinition } from "@/lib/markdown-votes";
 import { remarkHighlightActor } from "@/lib/markdown-highlights";
 import { STORAGE_KEY_PREFIX } from "@/lib/constants";
@@ -30,6 +30,8 @@ type MarkdownArticleProps = {
   playId?: string;
   actors?: ActorSummary[];
   enableVoting?: boolean;
+  /** Static rendering for the PDF / print view. */
+  printMode?: boolean;
 };
 
 function createEmptyVoteState(): LocalVoteState {
@@ -177,7 +179,9 @@ export function MarkdownArticle({
   playId = "",
   actors = [],
   enableVoting = true,
+  printMode = false,
 }: MarkdownArticleProps) {
+  const components = printMode ? printMarkdownComponents : markdownContentComponents;
   const ranges = useMemo(
     () =>
       activeActorId
@@ -350,7 +354,7 @@ export function MarkdownArticle({
                       <section key={option.id} className={`voteOptionCard ${isSelected ? "selected" : ""}`}>
                         <div className="voteOptionBody stackSm">
                           <div className="voteOptionContent">
-                            <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]} components={markdownContentComponents}>
+                            <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]} components={components}>
                               {option.label}
                             </ReactMarkdown>
                           </div>
@@ -403,7 +407,7 @@ export function MarkdownArticle({
             key={segment.id}
             rehypePlugins={[rehypeRaw]}
             remarkPlugins={[remarkGfm, remarkHighlightActor(segmentRanges)]}
-            components={markdownContentComponents}
+            components={components}
           >
             {segment.markdown}
           </ReactMarkdown>

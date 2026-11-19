@@ -1,0 +1,647 @@
+/* Print / PDF view of a play. Everything is scoped under .printDoc. */
+
+body:has(.printDoc) {
+  background: #efe8de;
+  padding: 0;
+}
+
+body:has(.printDoc) .pwaBanner {
+  display: none !important;
+}
+
+.printDoc {
+  --ink: #221a16;
+  --ink-soft: #5d524a;
+  --ink-faint: #8a7f74;
+  --wine: #6f1d1b;
+  --wine-soft: #9b3b33;
+  --paper: #fffdf9;
+  --line: #e6dccf;
+  --marker: #fdeca6;
+  --serif: var(--font-print-serif), "Iowan Old Style", Georgia, serif;
+  --sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 11.5pt;
+  line-height: 1.6;
+  font-feature-settings: "kern", "liga", "onum";
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ---------------------------------------------------------------- Toolbar (screen only) */
+
+.printToolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.75rem max(1rem, calc((100vw - 210mm) / 2));
+  background: rgba(255, 253, 249, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+}
+
+.printToolbarBack {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.printToolbarField {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 16rem;
+  color: var(--ink-faint);
+}
+
+.printToolbarField select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: #fff;
+  font: inherit;
+  color: var(--ink);
+}
+
+.printToolbarActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.printToolbarButton {
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--wine);
+  background: var(--wine);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.printToolbarButton.ghost {
+  background: transparent;
+  color: var(--wine);
+}
+
+/* ---------------------------------------------------------------- Sheets on screen */
+
+.printCover,
+.printBody {
+  width: min(210mm, 100%);
+  margin: 1.5rem auto;
+  background: var(--paper);
+  box-shadow: 0 1px 2px rgba(34, 26, 22, 0.06), 0 18px 40px rgba(34, 26, 22, 0.08);
+}
+
+.printBody {
+  padding: 18mm 18mm 22mm;
+}
+
+/* ---------------------------------------------------------------- Cover */
+
+.printCover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 297mm;
+  padding: 30mm 24mm 16mm;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(111, 29, 27, 0.07), transparent 60%),
+    var(--paper);
+}
+
+.printCover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(111, 29, 27, 0.28);
+  outline: 1px solid rgba(111, 29, 27, 0.12);
+  outline-offset: 2.2mm;
+  pointer-events: none;
+}
+
+.printCoverInner {
+  position: relative;
+  text-align: center;
+}
+
+.printEyebrow {
+  margin: 0 0 9mm;
+  font-family: var(--sans);
+  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--wine-soft);
+}
+
+.printTitle {
+  margin: 0;
+  font-size: 46pt;
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  color: var(--wine);
+}
+
+.printSubtitle {
+  margin: 4mm 0 0;
+  font-size: 16pt;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.printRule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4mm;
+  margin: 11mm auto 12mm;
+  max-width: 70mm;
+  color: var(--wine-soft);
+}
+
+.printRule span {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(111, 29, 27, 0.45), transparent);
+}
+
+.printRule i {
+  font-style: normal;
+  font-size: 10pt;
+}
+
+.printFor {
+  margin: 0 auto 12mm;
+  padding: 7mm 8mm;
+  max-width: 120mm;
+  border-radius: 3mm;
+  background: rgba(253, 236, 166, 0.28);
+  border: 1px solid rgba(214, 178, 76, 0.35);
+}
+
+.printForLabel {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 8pt;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.printForName {
+  margin: 2mm 0 0;
+  font-size: 24pt;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.printForRole {
+  margin: 1mm 0 0;
+  font-size: 13pt;
+  font-style: italic;
+  color: var(--wine);
+}
+
+.printLegend {
+  margin: 4mm 0 0;
+  font-family: var(--sans);
+  font-size: 8.5pt;
+  color: var(--ink-soft);
+}
+
+.printCast {
+  margin: 0 auto;
+  max-width: 112mm;
+  text-align: left;
+}
+
+.printCastTitle {
+  margin: 0 0 3mm;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 8pt;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--wine-soft);
+}
+
+.printCast ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.printCast li {
+  display: flex;
+  align-items: baseline;
+  gap: 2.5mm;
+  padding: 0.9mm 0;
+  font-size: 11pt;
+}
+
+.printCastRole {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.printCastDots {
+  flex: 1;
+  border-bottom: 1px dotted rgba(93, 82, 74, 0.45);
+  transform: translateY(-1mm);
+}
+
+.printCastPerson {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.printCast li.isMe .printCastRole,
+.printCast li.isMe .printCastPerson {
+  color: var(--wine);
+}
+
+.printCoverFooter {
+  position: relative;
+  margin: 10mm 0 0;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 8pt;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+}
+
+/* ---------------------------------------------------------------- Body typography */
+
+.printBody .markdownArticle {
+  display: block;
+  gap: 0;
+  font-family: var(--serif);
+}
+
+.printBody .markdownArticle > * + * {
+  margin-top: 0;
+}
+
+.printBody h1,
+.printBody h2,
+.printBody h3,
+.printBody h4 {
+  font-family: var(--serif);
+  color: var(--wine);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.printBody h2 {
+  margin: 12mm 0 5mm;
+  padding-bottom: 2.5mm;
+  border-bottom: 1px solid var(--line);
+  font-size: 19pt;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.printBody h2:first-child {
+  margin-top: 0;
+}
+
+.printBody h3 {
+  margin: 10mm 0 4mm;
+  font-size: 13.5pt;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+.printBody h3::before {
+  content: "";
+  display: block;
+  width: 12mm;
+  height: 2px;
+  margin-bottom: 3mm;
+  background: var(--wine);
+  opacity: 0.6;
+}
+
+.printBody h4 {
+  margin: 7mm 0 2mm;
+  font-size: 11.5pt;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.printBody p,
+.printBody li {
+  margin: 0 0 2.6mm;
+  font-size: 11.5pt;
+  line-height: 1.6;
+  orphans: 3;
+  widows: 3;
+}
+
+.printBody ul,
+.printBody ol {
+  margin: 0 0 4mm;
+  padding-left: 6mm;
+}
+
+.printBody a {
+  color: var(--wine);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(111, 29, 27, 0.3);
+}
+
+/* Script lines: **PERSONAJE:** texto */
+.printBody p.print-line {
+  margin-bottom: 3mm;
+  padding-left: 0;
+  break-inside: avoid;
+}
+
+.printBody p.print-line > strong:first-child,
+.printBody p.print-line > mark > strong:first-child,
+.printBody p.print-line strong:first-of-type {
+  font-family: var(--sans);
+  font-size: 8.6pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--wine);
+}
+
+.printBody p.print-line em {
+  color: var(--ink-faint);
+}
+
+/* Stage directions: *(…)* */
+.printBody p.print-direction {
+  margin: 3.5mm 0 3.5mm 9mm;
+  color: var(--ink-soft);
+  font-size: 10.5pt;
+  break-inside: avoid;
+}
+
+/* Sound cues and pending audio */
+.printBody p.print-cue {
+  margin: 3mm 0;
+  padding: 1.8mm 3mm;
+  border-left: 2px solid rgba(111, 29, 27, 0.35);
+  border-radius: 0 1.5mm 1.5mm 0;
+  background: rgba(111, 29, 27, 0.045);
+  font-family: var(--sans);
+  font-size: 8.8pt;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  break-inside: avoid;
+}
+
+.printBody p.print-cue strong {
+  color: var(--wine);
+  letter-spacing: 0.03em;
+}
+
+.printBody p.print-cue em {
+  font-style: normal;
+}
+
+.printBody .print-pending,
+.printBody .print-audio {
+  position: relative;
+}
+
+.printBody .print-icon {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  margin-right: 1.2mm;
+  vertical-align: -0.18em;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 5 6 9H2v6h4l5 4V5z' fill='black'/><path d='M15.5 8.5a5 5 0 0 1 0 7'/><path d='M19 5a10 10 0 0 1 0 14'/></svg>") center / contain no-repeat;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M11 5 6 9H2v6h4l5 4V5z' fill='black'/><path d='M15.5 8.5a5 5 0 0 1 0 7'/><path d='M19 5a10 10 0 0 1 0 14'/></svg>") center / contain no-repeat;
+}
+
+.printBody p.print-pending {
+  margin: -1.5mm 0 3.5mm;
+  padding: 1.6mm 3mm;
+  border: 1px dashed rgba(111, 29, 27, 0.3);
+  border-radius: 1.5mm;
+  font-family: var(--sans);
+  font-size: 8.4pt;
+  color: var(--ink-faint);
+  break-inside: avoid;
+}
+
+.printBody p.print-pending em {
+  font-style: normal;
+}
+
+.printBody .print-audio {
+  display: inline-block;
+  padding: 1mm 2.5mm;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: 8.5pt;
+  color: var(--ink-soft);
+}
+
+/* The actor's own parts */
+.printBody .actor-highlight {
+  color: inherit;
+  background: var(--marker);
+  box-shadow: none;
+  border-radius: 0.6mm;
+  padding: 0.2mm 0.6mm;
+}
+
+.printBody p:has(.actor-highlight) {
+  position: relative;
+}
+
+.printBody p:has(.actor-highlight)::before {
+  content: "";
+  position: absolute;
+  left: -5.5mm;
+  top: 0.6mm;
+  bottom: 0.6mm;
+  width: 1.4mm;
+  border-radius: 1mm;
+  background: var(--wine);
+}
+
+.printLegend .actor-highlight {
+  color: inherit;
+  background: var(--marker);
+  box-shadow: none;
+  padding: 0.2mm 1mm;
+}
+
+/* Tables */
+.printBody .markdownTableWrap {
+  margin: 3mm 0 6mm;
+  overflow: visible;
+  border: 0;
+  box-shadow: none;
+  background: none;
+}
+
+.printBody table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: 9pt;
+  line-height: 1.4;
+}
+
+.printBody th {
+  padding: 2mm 2.5mm;
+  border-bottom: 1.5px solid var(--wine);
+  background: none;
+  text-align: left;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--wine);
+}
+
+.printBody td {
+  padding: 2mm 2.5mm;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.printBody tr {
+  break-inside: avoid;
+}
+
+/* Code (Suno prompts, lyrics) */
+.printBody pre {
+  margin: 2mm 0 5mm;
+  padding: 3mm 4mm;
+  border-radius: 1.5mm;
+  background: #f5efe6;
+  border: 1px solid var(--line);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 8.8pt;
+  line-height: 1.5;
+  break-inside: avoid;
+}
+
+.printBody code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.86em;
+}
+
+.printBody :not(pre) > code {
+  padding: 0.2mm 1mm;
+  border-radius: 0.8mm;
+  background: #f5efe6;
+}
+
+.printBody img {
+  max-width: 100%;
+  border-radius: 1.5mm;
+  break-inside: avoid;
+}
+
+/* Votes: static summary */
+.printBody .voteBlock {
+  margin: 4mm 0;
+  padding: 4mm;
+  border: 1px solid var(--line);
+  border-radius: 2mm;
+  box-shadow: none;
+  background: none;
+  break-inside: avoid;
+}
+
+.printBody .voteBlock::after,
+.printBody .voteBlockText,
+.printBody .voteOptionAction,
+.printBody .badge,
+.printBody button {
+  display: none !important;
+}
+
+.printEnd {
+  margin: 10mm 0 0;
+  text-align: center;
+  color: var(--wine-soft);
+  font-size: 12pt;
+}
+
+/* ---------------------------------------------------------------- Paper */
+
+@media print {
+  body:has(.printDoc) {
+    background: #fff;
+  }
+
+  .printToolbar {
+    display: none;
+  }
+
+  .printCover,
+  .printBody {
+    width: auto;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  body:has(.printDoc) {
+    max-width: none;
+    overflow: visible;
+  }
+
+  /* Same page margins everywhere: Chrome lays out the whole document at one width. */
+  .printCover {
+    height: 258mm;
+    min-height: 0;
+    padding: 20mm 16mm 10mm;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .printBody {
+    /* Left gutter for the actor's margin bar. */
+    padding: 0 0 0 7mm;
+    background: none;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .printCover {
+    min-height: auto;
+    padding: 18mm 12mm 12mm;
+  }
+
+  .printTitle {
+    font-size: 32pt;
+  }
+
+  .printBody {
+    padding: 10mm 8mm 14mm;
+  }
+
+  .printBody p:has(.actor-highlight)::before {
+    left: -4mm;
+  }
+}

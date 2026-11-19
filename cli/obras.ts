@@ -47,6 +47,8 @@ Medios (imágenes/audios, servidos en /media/<key>)
   media list [obra] | media rm <key...> [--force] | media prune [--yes]
 Votaciones
   votes <obra> | votes reset <obra> [--vote ID] --yes
+PDF (portada + guion en A4; con actor, sus partes resaltadas)
+  pdf <obra> [--actor A | --all-actors] [--out archivo.pdf|dir/]
 Operación
   status [--public] | restart | logs [--lines n] | rebuild | backup [--out f.tar.gz]
 
@@ -99,6 +101,12 @@ Sintaxis en el markdown (línea [vote], opciones separadas por ---, mínimo 2, t
 Opción A
 ---
 Opción B`,
+  pdf: `obras pdf <obra> [--actor A | --all-actors] [--out archivo.pdf|dir/]
+Genera el PDF del guion (portada con reparto + texto en A4, pie con título y página). Lo renderiza el servidor local con Chrome headless; queda en caché hasta que la obra cambie.
+- --actor A: resalta y marca en el margen todo lo asignado a ese actor; la portada dice "Ejemplar de <actor>".
+- --all-actors: un PDF completo + uno por actor, en --out (carpeta; default ./<slug>-pdf/).
+- Sin --out: escribe <slug>[-<actor>].pdf en el directorio actual.
+- En la web: /obras/<slug>/pdf?actor=<id> (descarga) y /obras/<slug>/imprimir (vista previa).`,
   status: `obras status [--public]: ruta de datos/DB, conteos, estado de ${SERVICE} y ${TUNNEL_SERVICE} (systemd --user) y health HTTP de ${LOCAL_URL}/ (y la URL pública con --public).`,
   restart: `obras restart: systemctl --user restart ${SERVICE} y espera a que responda.`,
   logs: `obras logs [--lines n]: últimas n líneas (default 100) de journalctl --user -u ${SERVICE}.`,
